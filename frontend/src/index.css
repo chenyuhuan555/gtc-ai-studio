@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #F7F8FC;
+  /* 轻微点阵纹理（透明度 <8%）+ 极浅环境光 */
+  background-image:
+    radial-gradient(rgba(17, 24, 39, 0.045) 1px, transparent 1px),
+    radial-gradient(1200px 600px at 90% -10%, rgba(91, 163, 255, 0.06), transparent 60%);
+  background-size: 26px 26px, auto;
+  background-attachment: fixed;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- 页面切换淡入 ---- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: fadeUp 0.35s ease both; }
+
+/* ---- Apple Card ---- */
+.card {
+  @apply bg-white rounded-card p-6;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06);
+}
+
+/* ---- 玻璃面板（Sidebar / 浮层） ---- */
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ---- Linear 风格导航项 ---- */
+.nav-item {
+  @apply relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm transition;
+  color: #667085;
+}
+.nav-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #111827;
+}
+.nav-item.active {
+  color: #111827;
+  font-weight: 500;
+  background: rgba(30, 111, 255, 0.06);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  background: #1E6FFF;
+}
+
+/* ---- 按钮 ---- */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 bg-gtc-blue text-white font-medium
+         px-4 py-2.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed;
+  box-shadow: 0 6px 16px rgba(30, 111, 255, 0.25);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(30, 111, 255, 0.32);
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 bg-white text-gtc-ink font-medium
+         px-4 py-2.5 rounded-xl transition;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.btn-ghost:hover {
+  border-color: rgba(30, 111, 255, 0.4);
+  color: #1E6FFF;
+  transform: translateY(-1px);
+}
+
+/* ---- 表单 ---- */
+.input {
+  @apply w-full rounded-xl bg-white px-3.5 py-2.5 text-sm outline-none transition;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.input:focus {
+  border-color: #1E6FFF;
+  box-shadow: 0 0 0 3px rgba(30, 111, 255, 0.12);
+}
+
+.label {
+  @apply block text-sm font-medium text-gtc-sub mb-1.5;
+}
+
+.chip {
+  @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium;
+}
+
+/* ---- 分段 Tab（知识库 / 内容中心） ---- */
+.seg-tab {
+  @apply px-4 py-2 rounded-full text-sm transition;
+  color: #667085;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.seg-tab:hover { color: #111827; transform: translateY(-1px); }
+.seg-tab.active {
+  background: #111827;
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ---- 滚动条（极简） ---- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.12); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.2); }
+::-webkit-scrollbar-track { background: transparent; }
