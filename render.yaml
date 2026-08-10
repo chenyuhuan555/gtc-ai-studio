@@ -1,3 +1,5 @@
+region: singapore
+
 services:
   - type: web
     name: gtc-ai-studio-api
