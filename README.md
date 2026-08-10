@@ -48,6 +48,18 @@ npm run dev
 - **Supabase**：把 `backend/.env` 的 `DATABASE_URL` 换成 Supabase 连接串即可，代码无需改动。
 - **DeepSeek**：在 `backend/.env` 填入 `DEEPSEEK_API_KEY`，Prompt 优化引擎与内容生成的图片 Prompt 将改为 DeepSeek 优化（生成的提示词复制到网页 ChatGPT / Midjourney 使用）。不接 OpenAI。
 
+## 部署上线
+
+推荐部署组合：Vercel（前端）+ Render（FastAPI）+ Supabase（数据库与登录）。
+
+1. 在 [Supabase Dashboard](https://supabase.com/dashboard) 创建独立项目，并执行 `backend/supabase/workspace_state.sql`。
+2. 在 [Render](https://dashboard.render.com/blueprints) 选择本仓库的 `render.yaml` 创建后端服务，填写 `DATABASE_URL`、`SUPABASE_JWT_SECRET`、`CORS_ORIGINS` 和 `DEEPSEEK_API_KEY`。
+3. 在 [Vercel](https://vercel.com/new) 导入本仓库，项目根目录选择 `frontend`，填写 `VITE_API_BASE_URL`、`VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`。
+4. 将 Render 生成的后端 URL 填入 Vercel 的 `VITE_API_BASE_URL`，并把 Vercel 前端 URL 填回 Render 的 `CORS_ORIGINS`，然后重新部署。
+5. 在 Supabase Auth 中创建第一个登录用户，打开前端地址验证登录、内容生成和跨刷新同步。
+
+每次推送到 `main` 会触发 `.github/workflows/ci.yml`，自动执行后端测试和前端构建。生产密钥只配置在 Supabase、Render 和 Vercel，不写入 GitHub。
+
 ## 范围说明
 本 MVP 聚焦 PRD 第一阶段 P0。第二阶段（视频号/LinkedIn 助手 UI 增强、AI 图片评分）与第三阶段
 （情报自动抓取、竞品监控、内容日历、自动发布）已预留接口与数据模型（intelligence 表、platforms 规则），可在此基础上扩展。
