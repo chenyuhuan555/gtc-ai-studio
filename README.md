@@ -20,6 +20,10 @@
 后端同步接口默认要求 Supabase Auth JWT。生产环境在 `backend/.env` 填写
 `SUPABASE_JWT_SECRET`，保持 `SYNC_AUTH_DISABLED=false`；不要把 `service_role` Key 放入前端。
 
+如果 Supabase 项目与其他产品共用，GTC 的数据库表统一使用 `gtc_` 前缀，避免表名冲突。
+可在 `GTCA_ALLOWED_USER_IDS` 中填写允许访问 GTC 的 Supabase Auth 用户 UUID（逗号分隔），
+这样同一 Supabase 项目中的其他用户即使登录，也不能访问 GTC API。
+
 ## 目录
 ```
 gtc-ai-studio/
@@ -52,8 +56,8 @@ npm run dev
 
 推荐部署组合：Vercel（前端）+ Render（FastAPI）+ Supabase（数据库与登录）。
 
-1. 在 [Supabase Dashboard](https://supabase.com/dashboard) 创建独立项目，并执行 `backend/supabase/workspace_state.sql`。
-2. 在 [Render](https://dashboard.render.com/blueprints) 选择本仓库的 `render.yaml` 创建后端服务，填写 `DATABASE_URL`、`SUPABASE_JWT_SECRET`、`CORS_ORIGINS` 和 `DEEPSEEK_API_KEY`。
+1. 在现有 Supabase 项目的 SQL Editor 中执行 `backend/supabase/workspace_state.sql`；GTC 新表使用 `gtc_` 前缀，不会占用其他产品的同名表。
+2. 在 [Render](https://dashboard.render.com/blueprints) 选择本仓库的 `render.yaml` 创建后端服务，填写 `DATABASE_URL`、`SUPABASE_JWT_SECRET`、`GTCA_ALLOWED_USER_IDS`、`CORS_ORIGINS` 和 `DEEPSEEK_API_KEY`。
 3. 在 [Vercel](https://vercel.com/new) 导入本仓库，项目根目录选择 `frontend`，填写 `VITE_API_BASE_URL`、`VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`。
 4. 将 Render 生成的后端 URL 填入 Vercel 的 `VITE_API_BASE_URL`，并把 Vercel 前端 URL 填回 Render 的 `CORS_ORIGINS`，然后重新部署。
 5. 在 Supabase Auth 中创建第一个登录用户，打开前端地址验证登录、内容生成和跨刷新同步。

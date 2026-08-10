@@ -6,10 +6,15 @@ import {
   loadCases, saveCase, removeCase, updateCaseLocal,
 } from './engine.js'
 import * as ds from './deepseek.js'
+import { supabase } from './supabase.js'
 
 async function req(path, opts = {}) {
+  const session = supabase ? (await supabase.auth.getSession()).data.session : null
   const res = await fetch((import.meta.env.VITE_API_BASE_URL || '') + '/api' + path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
     ...opts,
   })
   if (!res.ok) {

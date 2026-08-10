@@ -1,11 +1,10 @@
 """工作区快照同步接口。"""
 from datetime import datetime, timezone
 
-import jwt
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.auth import require_gtc_user
 from app.database import get_db
 from app.models import WorkspaceState
 from app.schemas import WorkspaceSyncIn, WorkspaceSyncOut
@@ -15,24 +14,6 @@ router = APIRouter(prefix="/api/sync", tags=["sync"])
 
 def utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-def require_sync_access(authorization: str | None = Header(default=None)) -> str:
-    """Require a Supabase Auth JWT unless explicitly running local development mode."""
-    if settings.sync_auth_disabled:
-        return "local-development"
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="需要登录后才能同步")
-    if not settings.supabase_jwt_secret:
-        raise HTTPException(status_code=503, detail="同步服务未配置 Supabase JWT Secret")
-    token = authorization.removeprefix("Bearer ").strip()
-    try:
-        claims = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status_code=401, detail="登录凭证无效") from exc
-    if claims.get("role") != "authenticated":
-        raise HTTPException(status_code=403, detail="无权访问同步数据")
-    return str(claims.get("sub") or "authenticated")
 
 
 def as_output(row: WorkspaceState) -> WorkspaceSyncOut:
@@ -48,7 +29,7 @@ def as_output(row: WorkspaceState) -> WorkspaceSyncOut:
 def get_workspace(
     workspace_id: str = "main",
     db: Session = Depends(get_db),
-    _user_id: str = Depends(require_sync_access),
+    _user_id: str = Depends(require_gtc_user),
 ):
     row = db.get(WorkspaceState, workspace_id)
     return as_output(row) if row else None
@@ -58,7 +39,7 @@ def get_workspace(
 def save_workspace(
     payload: WorkspaceSyncIn,
     db: Session = Depends(get_db),
-    _user_id: str = Depends(require_sync_access),
+    _user_id: str = Depends(require_gtc_user),
 ):
     row = db.get(WorkspaceState, payload.workspace_id)
     if row is None:

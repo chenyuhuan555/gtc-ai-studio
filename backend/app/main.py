@@ -1,11 +1,12 @@
 """FastAPI 应用入口：建表 → 播种 → 挂载路由与 CORS。"""
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
 from app.routers import brand, cases, content, platforms, chat, sync
 from app.seed import seed_if_empty
+from app.auth import require_gtc_user
 
 app = FastAPI(title="GTC AI Content Studio", version="1.0.0")
 
@@ -24,20 +25,21 @@ Base.metadata.create_all(bind=engine)
 if settings.database_url.startswith("sqlite"):
     from sqlalchemy import text
     with engine.connect() as _conn:
-        _cols = [r[1] for r in _conn.exec_driver_sql("PRAGMA table_info(content_cases)").fetchall()]
+        _cols = [r[1] for r in _conn.exec_driver_sql("PRAGMA table_info(gtc_content_cases)").fetchall()]
         if "is_reference" not in _cols:
             _conn.exec_driver_sql(
-                "ALTER TABLE content_cases ADD COLUMN is_reference BOOLEAN NOT NULL DEFAULT 1"
+                "ALTER TABLE gtc_content_cases ADD COLUMN is_reference BOOLEAN NOT NULL DEFAULT 1"
             )
             _conn.commit()
 
 seed_if_empty()
 
-app.include_router(brand.router)
-app.include_router(platforms.router)
-app.include_router(cases.router)
-app.include_router(content.router)
-app.include_router(chat.router)
+api_auth = [Depends(require_gtc_user)]
+app.include_router(brand.router, dependencies=api_auth)
+app.include_router(platforms.router, dependencies=api_auth)
+app.include_router(cases.router, dependencies=api_auth)
+app.include_router(content.router, dependencies=api_auth)
+app.include_router(chat.router, dependencies=api_auth)
 app.include_router(sync.router)
 
 

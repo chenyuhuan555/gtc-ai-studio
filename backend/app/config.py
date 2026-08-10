@@ -11,10 +11,15 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     sync_auth_disabled: bool = False
     supabase_jwt_secret: str = ""
+    gtca_allowed_user_ids: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def allowed_user_ids(self) -> set[str]:
+        return {value.strip() for value in self.gtca_allowed_user_ids.split(",") if value.strip()}
 
 
 settings = Settings()

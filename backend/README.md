@@ -72,6 +72,13 @@ app/
 `SYNC_AUTH_DISABLED=true`。生产环境必须设置 `SUPABASE_JWT_SECRET`，并且绝不能把
 `service_role` Key 放进浏览器或前端环境变量。
 
+## 共享 Supabase 项目时的数据隔离
+
+如果 GTC 与其他产品共用一个 Supabase 项目，GTC 所有业务表都带有 `gtc_` 前缀。
+生产环境建议在 `GTCA_ALLOWED_USER_IDS` 中填写允许访问 GTC 的 Supabase Auth 用户 UUID，
+逗号分隔；后端会在每个 `/api` 请求中校验 JWT 和白名单。未设置白名单时，任何已认证用户
+都可以访问 GTC 表，因此正式上线不应留空。
+
 ## 主要接口
 | 方法 | 路径 | 说明 |
 |---|---|---|
