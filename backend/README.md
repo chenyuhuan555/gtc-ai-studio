@@ -27,6 +27,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 DATABASE_URL=postgresql://postgres:<pwd>@db.<ref>.supabase.co:5432/postgres
 ```
+项目会自动使用已安装的 `psycopg` 驱动连接 PostgreSQL。
 其余无需改动，SQLAlchemy 会自动用 PostgreSQL 方言。
 
 ## 接入真实 DeepSeek
