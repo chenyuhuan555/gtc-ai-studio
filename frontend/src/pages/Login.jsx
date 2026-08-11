@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { signIn } from '../supabase.js'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -12,7 +12,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await signIn(email.trim(), password)
+      await signIn(username, password)
     } catch (err) {
       setError(err.message || '登录失败，请检查账号和密码')
     } finally {
@@ -28,8 +28,8 @@ export default function Login() {
           <p className="text-sm text-gtc-sub mt-1">登录后同步你的工作区</p>
         </div>
         <label className="block text-sm text-gtc-sub">
-          邮箱
-          <input className="input mt-1 w-full" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          用户名
+          <input className="input mt-1 w-full" type="text" autoComplete="username" placeholder="例如：yuhuanchen" value={username} onChange={(e) => setUsername(e.target.value)} required />
         </label>
         <label className="block text-sm text-gtc-sub">
           密码
