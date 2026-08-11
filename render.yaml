@@ -13,6 +13,8 @@ services:
         sync: false
       - key: SUPABASE_JWT_SECRET
         sync: false
+      - key: SUPABASE_URL
+        sync: false
       - key: GTCA_ALLOWED_USER_IDS
         sync: false
       - key: CORS_ORIGINS
