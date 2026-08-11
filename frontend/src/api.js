@@ -24,6 +24,20 @@ async function req(path, opts = {}) {
   return res.json()
 }
 
+async function optimizeImagePromptIfConfigured(result) {
+  if (!result || result.used_ai || !ds.isConfigured() || !result.image_prompt) return result
+  try {
+    return {
+      ...result,
+      image_prompt: await ds.optimizePrompt(result.image_prompt, ds.getSettings()),
+      used_ai: true,
+      ai_source: 'client',
+    }
+  } catch {
+    return result
+  }
+}
+
 function brandFallback() {
   return {
     info: BRAND.info,
@@ -83,6 +97,7 @@ export const api = {
     let r
     try {
       r = await req('/content/generate', { method: 'POST', body: JSON.stringify(data) })
+      r = await optimizeImagePromptIfConfigured(r)
     } catch {
       r = engGenerate(data)
       if (ds.isConfigured()) {
@@ -105,6 +120,11 @@ export const api = {
     let r
     try {
       r = await req('/prompt/build', { method: 'POST', body: JSON.stringify(data) })
+      if (!r.used_ai && ds.isConfigured() && r.prompt) {
+        try {
+          r = { ...r, prompt: await ds.optimizePrompt(r.prompt, ds.getSettings()), used_ai: true, ai_source: 'client' }
+        } catch { /* 本地 Key 失败则保留规则化结果 */ }
+      }
     } catch {
       const vc = {
         poster_type: data.poster_type, main_visual: data.main_visual, brand_strength: data.brand_strength,
