@@ -101,8 +101,29 @@ export default function App() {
   const createWorkspace = async () => {
     const name = window.prompt('请输入公众号名称')?.trim()
     if (!name) return
-    const workspace = await api.createWorkspace({ name })
-    switchWorkspace(workspace.id)
+    try {
+      const workspace = await api.createWorkspace({ name })
+      switchWorkspace(workspace.id)
+    } catch (error) {
+      window.alert(`新建失败：${error.message || '请稍后重试'}`)
+    }
+  }
+
+  const deleteWorkspace = async () => {
+    if (activeWorkspaceId === 'gtc-default' || workspaces.length <= 1) return
+    const current = workspaces.find((workspace) => workspace.id === activeWorkspaceId)
+    if (!current || !window.confirm(`确定删除“${current.name}”及其全部知识库、案例和同步数据吗？此操作不可恢复。`)) return
+    try {
+      await api.deleteWorkspace(activeWorkspaceId)
+      const next = workspaces.find((workspace) => workspace.id !== activeWorkspaceId)
+      setActiveWorkspaceId(next.id)
+      setActiveWorkspace(next.id)
+      clearWorkspaceData()
+      clearWorkspaceSession()
+      window.location.reload()
+    } catch (error) {
+      window.alert(`删除失败：${error.message || '请稍后重试'}`)
+    }
   }
 
   useEffect(() => {
@@ -188,6 +209,7 @@ export default function App() {
               {workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
             </select>
             <button onClick={createWorkspace} className="w-6 h-6 rounded-full text-gtc-sub hover:bg-gtc-bg" title="新建公众号">＋</button>
+            {activeWorkspaceId !== 'gtc-default' && workspaces.length > 1 && <button onClick={deleteWorkspace} className="w-6 h-6 rounded-full text-rose-400 hover:bg-rose-50" title="删除当前公众号">×</button>}
           </div>
         </header>
         <div className="px-8 pb-12 page-enter" key={view}>

@@ -107,3 +107,16 @@ class WorkspaceSyncTests(unittest.TestCase):
         )
         self.assertEqual(isolated_cases.status_code, 200)
         self.assertEqual([item["title"] for item in isolated_cases.json()], ["测试公众号案例"])
+
+        deleted = self.client.delete(f"/api/workspaces/{workspace_id}")
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(deleted.json(), {"ok": True})
+        self.assertEqual(self.client.get("/api/workspaces").json(), [{
+            "id": "gtc-default",
+            "name": "GTC 官方公众号",
+            "description": "深圳市光明科学城全球青年人才中心",
+        }])
+
+    def test_default_workspace_cannot_be_deleted(self):
+        response = self.client.delete("/api/workspaces/gtc-default")
+        self.assertEqual(response.status_code, 400)

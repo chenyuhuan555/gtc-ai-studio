@@ -71,6 +71,9 @@ export const api = {
   async createWorkspace(data) {
     return req('/workspaces', { method: 'POST', body: JSON.stringify(data) })
   },
+  async deleteWorkspace(workspaceId) {
+    return req('/workspaces/' + encodeURIComponent(workspaceId), { method: 'DELETE' })
+  },
   async getBrand() {
     try { return await req('/brand') } catch { return brandFallback() }
   },

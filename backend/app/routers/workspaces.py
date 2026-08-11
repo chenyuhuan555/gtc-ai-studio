@@ -1,9 +1,20 @@
 """公众号工作空间管理。"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import BrandInfo, Workspace, WorkspaceMember
+from app.models import (
+    DEFAULT_WORKSPACE_ID,
+    BrandInfo,
+    BrandRule,
+    ContentCase,
+    Intelligence,
+    PlatformRule,
+    Prompt,
+    Workspace,
+    WorkspaceMember,
+    WorkspaceState,
+)
 from app.schemas import WorkspaceCreate, WorkspaceOut
 from app.workspace_access import ensure_default_workspace, new_workspace_id
 from app.auth import require_gtc_user
@@ -41,3 +52,29 @@ def create_workspace(
     db.commit()
     db.refresh(workspace)
     return workspace
+
+
+@router.delete("/{workspace_id}")
+def delete_workspace(
+    workspace_id: str,
+    user_id: str = Depends(require_gtc_user),
+    db: Session = Depends(get_db),
+):
+    if workspace_id == DEFAULT_WORKSPACE_ID:
+        raise HTTPException(status_code=400, detail="GTC 官方公众号不能删除")
+
+    workspace = (
+        db.query(Workspace)
+        .join(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
+        .filter(Workspace.id == workspace_id, WorkspaceMember.user_id == user_id)
+        .first()
+    )
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="公众号工作空间不存在或无权删除")
+
+    for model in (BrandInfo, BrandRule, ContentCase, PlatformRule, Prompt, Intelligence, WorkspaceState):
+        db.query(model).filter(model.workspace_id == workspace_id).delete(synchronize_session=False)
+    db.query(WorkspaceMember).filter(WorkspaceMember.workspace_id == workspace_id).delete(synchronize_session=False)
+    db.delete(workspace)
+    db.commit()
+    return {"ok": True}
