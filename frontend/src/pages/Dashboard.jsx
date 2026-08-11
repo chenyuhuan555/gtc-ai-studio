@@ -86,6 +86,7 @@ function CalEventEditor({ initial, onSave, onCancel }) {
 
 // 内容表现（手动编辑，localStorage 持久化；本周各平台阅读量）
 const PERF_KEY = 'gtc_performance_data'
+const SHOW_PERFORMANCE = false
 const DEFAULT_PERF = [
   { platform: 'wechat', reads: 3240, growth: '+12%' },
   { platform: 'xiaohongshu', reads: 5180, growth: '+24%' },
@@ -264,8 +265,8 @@ export default function Dashboard({ onNavigate }) {
         ))}
       </div>
 
-      {/* 今日任务 + 内容表现 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* 今日任务 */}
+      <div className="grid grid-cols-1 gap-5">
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <div className="text-[17px] font-semibold text-gtc-ink">今日任务</div>
@@ -364,7 +365,7 @@ export default function Dashboard({ onNavigate }) {
           )}
         </div>
 
-        <div className="card">
+        {SHOW_PERFORMANCE && <div className="card">
           <div className="flex items-center justify-between mb-4">
             <div className="text-[17px] font-semibold text-gtc-ink">内容表现（本周）</div>
             <span className="text-xs text-gtc-sub">阅读量 · 可手动编辑</span>
@@ -438,7 +439,7 @@ export default function Dashboard({ onNavigate }) {
               )
             })}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* 平台覆盖（App Icon 风格 + 状态） */}
@@ -462,7 +463,7 @@ export default function Dashboard({ onNavigate }) {
                     {meta.status}
                   </div>
                 </div>
-              </div>
+      </div>
             )
           })}
         </div>
