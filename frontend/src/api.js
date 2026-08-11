@@ -154,7 +154,17 @@ export const api = {
   },
   async chatOptimize(data) {
     try {
-      return await req('/chat/optimize', { method: 'POST', body: JSON.stringify(data) })
+      const result = await req('/chat/optimize', { method: 'POST', body: JSON.stringify(data) })
+      if (!result.used_ai && ds.isConfigured()) {
+        return ds.chatOptimize({
+          messages: data.messages,
+          currentPrompt: data.current_prompt,
+          platform: data.platform,
+          contentType: data.content_type,
+          settings: ds.getSettings(),
+        })
+      }
+      return result
     } catch (e) {
       if (ds.isConfigured()) {
         // 静态部署无后端：前端直接用用户填入的 DeepSeek Key 调用
