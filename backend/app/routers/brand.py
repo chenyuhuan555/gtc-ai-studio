@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import BrandInfo, BrandRule
+from app.models import DEFAULT_WORKSPACE_ID, BrandInfo, BrandRule
 from app.schemas import (
     BrandInfoOut,
     BrandInfoUpdate,
@@ -30,6 +30,7 @@ def get_brand_knowledge(db: Session = Depends(get_db), workspace: WorkspaceConte
         forbidden=[BrandRuleOut.model_validate(r) for r in forbidden],
         templates=[BrandRuleOut.model_validate(r) for r in templates],
         logo=[BrandRuleOut.model_validate(r) for r in logo],
+        logo_url="/gtc-logo.png" if workspace.id == DEFAULT_WORKSPACE_ID else "",
     )
 
 

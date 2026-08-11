@@ -140,8 +140,13 @@ def _image_prompt(
     visual_style = pr.visual_style if pr else ""
     dna_block = "\n- ".join(ctx["visual_dna"])
     forbidden_block = "\n".join(f"- 禁止：{f}" for f in ctx["forbidden"])
+    has_logo = bool(ctx["logo"])
     logo_block = "\n".join(f"- {l}" for l in ctx["logo"]) or (
-        "- 使用官方 GTC logo 作为品牌标记，不得重新设计"
+        "- 当前公众号未配置 Logo，不要添加其他品牌 Logo"
+    )
+    logo_instruction = (
+        "将官方 Logo 作为参考图上传给 AI，原样使用；不得重新设计、改色、变形或重绘字体。"
+        if has_logo else "当前公众号未配置 Logo，请不要添加 GTC 或其他品牌 Logo。"
     )
     subject = info.event_name or info.topic or "光明科学城全球青年人才中心活动"
 
@@ -185,7 +190,7 @@ def _image_prompt(
         f"内容类型：{CONTENT_TYPE_LABEL.get(info.content_type, info.content_type)}。{details_block}\n\n"
         f"[平台] {PLATFORM_LABELS.get(platform, platform)} — 视觉规范：{visual_style}\n\n"
         f"[品牌标识]\n{logo_block}\n"
-        f"将官方 GTC logo 作为参考图上传给 AI，原样使用；不得重新设计、改色、变形或重绘字体。\n\n"
+        f"{logo_instruction}\n\n"
         f"[禁止元素]\n{forbidden_block}\n\n"
         f"[输出] 一段高质量、符合品牌调性的中文图像生成 Prompt。"
         f"要求：画面感强、科技蓝配色、白色背景、真实人文连接、干净专业、年轻国际化。"
@@ -208,15 +213,16 @@ def _image_prompt(
     )
     brand_mark = (
         f"[Brand Mark]\n{logo_block}\n"
-        "Place the official GTC logo as given (upload it as a reference image). "
+        "Place the official logo as given (upload it as a reference image). "
         "Do NOT redesign, recolor, distort, or redraw the logo; keep it exactly as provided."
+        if has_logo else ""
     )
     if enhanced:
         # DeepSeek 可能未保留视觉控制 / 品牌标记 / 具体时间地点约束，统一在末尾追加，确保必现
         out = enhanced.rstrip()
         if vc_block and "[Visual Control]" not in out:
             out += "\n\n[Visual Control]\n" + vc_block
-        if "[Brand Mark]" not in out:
+        if has_logo and "[Brand Mark]" not in out:
             out += "\n\n" + brand_mark
         out = _ensure_concrete_details(out, extra_info)
         out = _ensure_reference_cases(out, cases_block)

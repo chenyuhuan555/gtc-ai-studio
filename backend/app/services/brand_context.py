@@ -1,7 +1,7 @@
 """从数据库加载品牌上下文，供 Prompt 引擎与内容生成共用。"""
 from sqlalchemy.orm import Session
 
-from app.models import BrandInfo, BrandRule, ContentCase, PlatformRule
+from app.models import DEFAULT_WORKSPACE_ID, BrandInfo, BrandRule, ContentCase, PlatformRule
 
 PLATFORM_LABELS = {
     "wechat": "微信公众号",
@@ -27,7 +27,7 @@ def load_brand_context(db: Session, workspace_id: str = "gtc-default") -> dict:
         "forbidden": [r.rule for r in forbidden],
         "platform_rules": platform_rules,
         "logo": [r.rule for r in logo],
-        "logo_url": "/gtc-logo.png",
+        "logo_url": "/gtc-logo.png" if workspace_id == DEFAULT_WORKSPACE_ID else "",
     }
 
 

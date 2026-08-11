@@ -60,7 +60,9 @@ def _parse_json(text: str) -> dict | None:
 
 def _ensure_brand_mark(prompt: str, db, workspace_id: str = "gtc-default") -> str:
     ctx = load_brand_context(db, workspace_id)
-    logo = "; ".join(ctx["logo"]) or "Use the official GTC logo as a brand mark; do not redesign it."
+    if not ctx["logo"]:
+        return prompt
+    logo = "; ".join(ctx["logo"])
     if "[Brand Mark]" in prompt:
         return prompt
     block = (

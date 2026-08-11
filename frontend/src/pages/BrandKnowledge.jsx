@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { api, PLATFORMS, platformLabel, platformColor } from '../api.js'
-import { BRAND } from '../engine.js'
 import { SparkIcon, BookIcon, ShieldIcon, DocPenIcon } from '../icons.jsx'
 
 // Notion 式知识库目录
@@ -95,16 +94,22 @@ export default function BrandKnowledge() {
             <div className="space-y-5">
               <SectionCard title="Logo 规范" desc="官方标识的统一使用规则">
                 <div className="flex flex-col sm:flex-row gap-5 items-start">
-                  <div className="shrink-0 rounded-2xl border border-black/[0.05] bg-white p-4">
-                    <img src={BRAND.logo_url} alt="GTC 官方 Logo" className="h-28 w-auto object-contain" />
-                  </div>
+                  {brand?.logo_url
+                    ? <div className="shrink-0 rounded-2xl border border-black/[0.05] bg-white p-4">
+                        <img src={brand.logo_url} alt="GTC 官方 Logo" className="h-28 w-auto object-contain" />
+                      </div>
+                    : <div className="shrink-0 h-36 w-36 rounded-2xl border border-dashed border-black/[0.12] bg-gtc-bg flex items-center justify-center text-center text-xs text-gtc-sub px-4">
+                        尚未配置 Logo
+                      </div>}
                   <div className="flex-1">
-                    <div className="font-semibold text-gtc-ink">官方 Logo 使用规范</div>
+                    <div className="font-semibold text-gtc-ink">{brand?.info?.name_cn || '当前公众号'} Logo 使用规范</div>
                     <div className="text-sm text-gtc-sub mt-1 leading-relaxed">
-                      生成图片如涉及 GTC，必须使用此官方 logo 作为品牌标记，不得重新设计、改色、变形或重绘字体。
+                      {brand?.logo_url
+                        ? '生成图片如涉及 GTC，必须使用此官方 logo 作为品牌标记，不得重新设计、改色、变形或重绘字体。'
+                        : '当前公众号暂未配置 Logo。你可以在下方添加 Logo 使用规则，后续生成内容不会带入 GTC 官方 Logo。'}
                     </div>
-                    <a href={BRAND.logo_url} download="gtc-logo.png"
-                      className="btn-ghost mt-3 text-sm">⬇ 下载官方 Logo</a>
+                    {brand?.logo_url && <a href={brand.logo_url} download="gtc-logo.png"
+                      className="btn-ghost mt-3 text-sm">⬇ 下载官方 Logo</a>}
                   </div>
                 </div>
               </SectionCard>
