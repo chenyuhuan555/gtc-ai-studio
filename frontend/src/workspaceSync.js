@@ -60,9 +60,6 @@ async function request(path, session, options = {}) {
 
 export async function bootstrapWorkspace(session) {
   if (!supabaseConfigured || !session) return { mode: 'local' }
-  if (localStorage.getItem(HYDRATED_KEY) === '1') {
-    return { mode: 'ready', version: Number(localStorage.getItem(VERSION_KEY)) || null }
-  }
 
   const cloud = await request(`/workspace?workspace_id=${WORKSPACE_ID}`, session)
   if (!cloud) {

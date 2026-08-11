@@ -7,7 +7,7 @@ import Settings from './pages/Settings.jsx'
 import { isClientConfigured } from './api.js'
 import Login from './pages/Login.jsx'
 import { getSession, signOut, supabase, supabaseConfigured } from './supabase.js'
-import { bootstrapWorkspace, clearWorkspaceSession, saveWorkspace } from './workspaceSync.js'
+import { bootstrapWorkspace, captureWorkspaceState, clearWorkspaceSession, saveWorkspace } from './workspaceSync.js'
 import { SparkIcon, HomeIcon, DocPenIcon, BookIcon, ChatIcon, GearIcon } from './icons.jsx'
 
 const NAV = [
@@ -35,6 +35,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState('')
   const syncVersion = useRef(null)
   const [syncReadyVersion, setSyncReadyVersion] = useState(null)
+  const lastSyncedState = useRef('')
   const syncError = useRef(false)
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function App() {
         clearWorkspaceSession()
         syncVersion.current = null
         setSyncReadyVersion(null)
+        lastSyncedState.current = ''
       }
     })
     return () => subscription.unsubscribe()
@@ -59,6 +61,7 @@ export default function App() {
       if (!active) return
       syncVersion.current = result.version || null
       setSyncReadyVersion(result.version || null)
+      lastSyncedState.current = JSON.stringify(captureWorkspaceState())
       setSyncStatus(result.mode === 'hydrated' ? '已从云端恢复' : '云端同步已连接')
       if (result.reload && !window.location.search.includes('sync-ready')) {
         window.location.replace(`${window.location.pathname}?sync-ready=1`)
@@ -73,9 +76,12 @@ export default function App() {
   useEffect(() => {
     if (!session || !syncReadyVersion || syncError.current) return undefined
     const timer = window.setInterval(() => {
+      const currentState = JSON.stringify(captureWorkspaceState())
+      if (currentState === lastSyncedState.current) return
       saveWorkspace(session, syncVersion.current).then((result) => {
         if (result) {
           syncVersion.current = result.version
+          lastSyncedState.current = JSON.stringify(captureWorkspaceState())
           setSyncStatus('已同步')
         }
       }).catch(() => {
