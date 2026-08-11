@@ -83,10 +83,19 @@ export async function bootstrapWorkspace(session) {
 
 export async function saveWorkspace(session, version) {
   if (!supabaseConfigured || !session || !version) return null
-  return request('/workspace', session, {
+  const save = (expectedVersion) => request('/workspace', session, {
     method: 'PUT',
-    body: JSON.stringify({ workspace_id: WORKSPACE_ID, state: captureWorkspaceState(), expected_version: version }),
+    body: JSON.stringify({ workspace_id: WORKSPACE_ID, state: captureWorkspaceState(), expected_version: expectedVersion }),
   })
+
+  try {
+    return await save(version)
+  } catch (error) {
+    if (error.status !== 409) throw error
+    const latest = await request(`/workspace?workspace_id=${WORKSPACE_ID}`, session)
+    if (!latest) throw error
+    return save(latest.version)
+  }
 }
 
 export function clearWorkspaceSession() {
