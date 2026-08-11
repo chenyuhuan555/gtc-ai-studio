@@ -29,7 +29,7 @@ export default function Login() {
         </div>
         <label className="block text-sm text-gtc-sub">
           用户名
-          <input className="input mt-1 w-full" type="text" autoComplete="username" placeholder="例如：yuhuanchen" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          <input className="input mt-1 w-full" type="text" autoComplete="username" placeholder="请输入用户名" value={username} onChange={(e) => setUsername(e.target.value)} required />
         </label>
         <label className="block text-sm text-gtc-sub">
           密码
