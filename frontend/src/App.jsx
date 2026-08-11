@@ -34,6 +34,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(supabaseConfigured)
   const [syncStatus, setSyncStatus] = useState('')
   const syncVersion = useRef(null)
+  const [syncReadyVersion, setSyncReadyVersion] = useState(null)
   const syncError = useRef(false)
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function App() {
       if (!nextSession) {
         clearWorkspaceSession()
         syncVersion.current = null
+        setSyncReadyVersion(null)
       }
     })
     return () => subscription.unsubscribe()
@@ -52,9 +54,11 @@ export default function App() {
   useEffect(() => {
     if (!session) return undefined
     let active = true
+    syncError.current = false
     bootstrapWorkspace(session).then((result) => {
       if (!active) return
       syncVersion.current = result.version || null
+      setSyncReadyVersion(result.version || null)
       setSyncStatus(result.mode === 'hydrated' ? '已从云端恢复' : '云端同步已连接')
       if (result.reload && !window.location.search.includes('sync-ready')) {
         window.location.replace(`${window.location.pathname}?sync-ready=1`)
@@ -67,7 +71,7 @@ export default function App() {
   }, [session])
 
   useEffect(() => {
-    if (!session || !syncVersion.current || syncError.current) return undefined
+    if (!session || !syncReadyVersion || syncError.current) return undefined
     const timer = window.setInterval(() => {
       saveWorkspace(session, syncVersion.current).then((result) => {
         if (result) {
@@ -80,7 +84,7 @@ export default function App() {
       })
     }, 1500)
     return () => window.clearInterval(timer)
-  }, [session])
+  }, [session, syncReadyVersion])
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center text-gtc-sub">正在检查登录状态…</div>
   if (supabaseConfigured && !session) return <Login />
