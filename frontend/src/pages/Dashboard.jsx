@@ -40,6 +40,25 @@ function weekDays() {
   })
 }
 
+function dateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function eventDateKey(event) {
+  if (event.date) return event.date
+  const days = weekDays()
+  return dateKey(days[Math.max(0, (event.day || 1) - 1)])
+}
+
+function monthCells(month) {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1)
+  const offset = (first.getDay() + 6) % 7
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(month.getFullYear(), month.getMonth(), index - offset + 1)
+    return { date, key: dateKey(date), inMonth: date.getMonth() === month.getMonth() }
+  })
+}
+
 // 日历事件行内编辑器（新增/编辑共用）
 function CalEventEditor({ initial, onSave, onCancel }) {
   const [title, setTitle] = useState(initial?.title || '')
@@ -138,6 +157,8 @@ export default function Dashboard({ onNavigate }) {
   const [editingEvt, setEditingEvt] = useState(null) // {id} 正在编辑的事件
   const [addingDay, setAddingDay] = useState(null)   // 正在新增事件的 weekday(1-7)
   const [showAll, setShowAll] = useState(false)       // 查看全部弹层
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date())
+  const [addingDate, setAddingDate] = useState(null)
   const [perf, setPerf] = useState(loadPerf)          // 内容表现（手动编辑）
   const [editingPerf, setEditingPerf] = useState(null) // 正在编辑表现的平台 key
 
@@ -168,8 +189,14 @@ export default function Dashboard({ onNavigate }) {
   }, [perf])
 
   const addEvent = (day, data) => {
-    setEvents((evs) => [...evs, { id: Date.now(), day, ...data }])
+    const date = weekDays()[Math.max(0, day - 1)]
+    setEvents((evs) => [...evs, { id: Date.now(), day, date: dateKey(date), ...data }])
     setAddingDay(null)
+  }
+  const addEventOnDate = (date, data) => {
+    const parsed = new Date(`${date}T12:00:00`)
+    setEvents((evs) => [...evs, { id: Date.now(), day: parsed.getDay() || 7, date, ...data }])
+    setAddingDate(null)
   }
   const updateEvent = (id, data) => {
     setEvents((evs) => evs.map((e) => (e.id === id ? { ...e, ...data } : e)))
@@ -184,6 +211,7 @@ export default function Dashboard({ onNavigate }) {
     setShowAll(false)
     setEditingEvt(null)
     setAddingDay(null)
+    setAddingDate(null)
   }
 
   const toggleTask = (id) => {
@@ -533,73 +561,65 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* 查看全部：本周完整排期弹层 */}
+      {/* 查看全部：本月日程日历 */}
       {showAll && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeModal}>
+        <div className="fixed inset-0 z-50 min-h-screen flex items-center justify-center p-4" onClick={closeModal}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div
-            className="relative w-full max-w-lg max-h-[82vh] overflow-hidden rounded-[28px] bg-white shadow-2xl flex flex-col"
+            className="relative w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-hidden rounded-[28px] bg-white shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-black/[0.04]">
               <div>
-                <div className="text-[17px] font-semibold text-gtc-ink">本周内容排期</div>
-                <div className="text-xs text-gtc-sub mt-0.5">{range} · 共 {events.length} 条</div>
+                <div className="text-[17px] font-semibold text-gtc-ink">本月内容日程</div>
+                <div className="text-xs text-gtc-sub mt-0.5">{calendarMonth.getFullYear()} 年 {calendarMonth.getMonth() + 1} 月 · 共 {events.filter((e) => eventDateKey(e).startsWith(`${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}`)).length} 条</div>
               </div>
               <button onClick={closeModal} className="w-8 h-8 rounded-full flex items-center justify-center text-gtc-sub hover:bg-black/[0.05] transition" title="关闭">✕</button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
-              {/* 新建排期 */}
-              {addingDay ? (
-                <div className="rounded-2xl border border-gtc-blue/30 bg-gtc-bg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <select value={addingDay} onChange={(e) => setAddingDay(Number(e.target.value))} className="input !py-1.5 !text-xs !w-24">
-                      {WEEK_LABELS.map((w, i) => <option key={i} value={i + 1}>{w}</option>)}
-                    </select>
-                    <span className="text-xs text-gtc-sub">新增排期</span>
-                  </div>
-                  <CalEventEditor
-                    onSave={(data) => addEvent(addingDay, data)}
-                    onCancel={() => setAddingDay(null)}
-                  />
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {addingDate && (
+                <div className="mb-4 rounded-2xl border border-gtc-blue/30 bg-gtc-bg p-3">
+                  <div className="text-xs text-gtc-sub mb-2">{addingDate} 新增排期</div>
+                  <CalEventEditor onSave={(data) => addEventOnDate(addingDate, data)} onCancel={() => setAddingDate(null)} />
                 </div>
-              ) : (
-                <button onClick={() => setAddingDay(1)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-gtc-sub hover:text-gtc-blue hover:bg-black/[0.03] transition">
-                  <PlusIcon size={16} /> 新建排期
-                </button>
               )}
-              {/* 按星期分组列出 */}
-              {WEEK_LABELS.map((w, i) => {
-                const list = events.filter((e) => e.day === i + 1).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-                if (list.length === 0) return null
-                return (
-                  <div key={i} className="pt-2">
-                    <div className="text-[11px] font-medium text-gtc-sub/70 mb-1 px-1">{w}</div>
-                    <div className="space-y-1.5">
-                      {list.map((ev) => editingEvt?.id === ev.id ? (
-                        <CalEventEditor key={ev.id} initial={ev} onSave={(data) => updateEvent(ev.id, data)} onCancel={() => setEditingEvt(null)} />
-                      ) : (
-                        <div key={ev.id} className="group flex items-center gap-3 rounded-xl bg-gtc-bg border border-black/[0.04] p-3">
-                          <div className={`w-7 h-7 rounded-full ${PLATFORM_META[ev.platform]?.bg || 'bg-gtc-blue'} text-white flex items-center justify-center text-[10px] shrink-0`}>
-                            {PLATFORM_META[ev.platform]?.text}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm text-gtc-ink truncate">{ev.title}</div>
-                            <div className="text-[11px] text-gtc-sub mt-0.5">{ev.time}</div>
-                          </div>
-                          <div className="hidden group-hover:flex items-center gap-0.5">
-                            <button onClick={() => setEditingEvt({ id: ev.id })} className="p-1.5 rounded-lg text-gtc-sub hover:text-gtc-blue hover:bg-black/[0.06] transition" title="编辑"><DocPenIcon size={14} /></button>
-                            <button onClick={() => deleteEvent(ev.id)} className="p-1.5 rounded-lg text-gtc-sub hover:text-rose-500 hover:bg-black/[0.06] transition" title="删除"><TrashIcon size={14} /></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {editingEvt && (() => {
+                const event = events.find((item) => item.id === editingEvt.id)
+                return event ? (
+                  <div className="mb-4 rounded-2xl border border-gtc-blue/30 bg-gtc-bg p-3">
+                    <div className="text-xs text-gtc-sub mb-2">编辑排期</div>
+                    <CalEventEditor initial={event} onSave={(data) => updateEvent(event.id, data)} onCancel={() => setEditingEvt(null)} />
                   </div>
-                )
-              })}
-              {events.length === 0 && !addingDay && (
-                <div className="text-center text-sm text-gtc-sub py-8">本周还没有排期，点击上方「新建排期」开始添加。</div>
-              )}
+                ) : null
+              })()}
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="px-3 py-1.5 rounded-lg text-sm text-gtc-sub hover:bg-gtc-bg">‹ 上月</button>
+                <div className="text-sm font-medium text-gtc-ink">{calendarMonth.getFullYear()} 年 {calendarMonth.getMonth() + 1} 月</div>
+                <button onClick={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="px-3 py-1.5 rounded-lg text-sm text-gtc-sub hover:bg-gtc-bg">下月 ›</button>
+              </div>
+              <div className="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border border-black/[0.06] bg-black/[0.06]">
+                {WEEK_LABELS.map((label) => <div key={label} className="bg-gtc-bg px-2 py-2 text-center text-xs text-gtc-sub">{label}</div>)}
+                {monthCells(calendarMonth).map(({ date, key, inMonth }) => {
+                  const dayEvents = events.filter((event) => eventDateKey(event) === key)
+                  return (
+                    <div key={key} role="button" tabIndex={0} onClick={() => setAddingDate(key)} onKeyDown={(event) => { if (event.key === 'Enter') setAddingDate(key) }} className={`min-h-28 bg-white p-2 text-left align-top hover:bg-gtc-bg transition ${!inMonth ? 'text-black/20' : 'text-gtc-ink'}`}>
+                      <div className="text-xs font-medium">{date.getDate()}</div>
+                      <div className="mt-1 space-y-1">
+                        {dayEvents.map((event) => (
+                          <div key={event.id} className="group rounded-lg bg-gtc-bg px-2 py-1 text-[11px]" onClick={(e) => e.stopPropagation()}>
+                            <div className="truncate">{event.title}</div>
+                            <div className="text-gtc-sub">{event.time}</div>
+                            <div className="hidden group-hover:flex gap-1 mt-1">
+                              <button onClick={() => setEditingEvt({ id: event.id })} className="text-gtc-blue">编辑</button>
+                              <button onClick={() => deleteEvent(event.id)} className="text-rose-500">删除</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
