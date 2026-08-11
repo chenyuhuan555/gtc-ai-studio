@@ -45,6 +45,29 @@ class AuthTokenTests(unittest.TestCase):
         finally:
             settings.supabase_url = previous_url
 
+    def test_verifies_token_with_supabase_auth_when_local_keys_fail(self):
+        previous_url = settings.supabase_url
+        previous_key = settings.supabase_anon_key
+        settings.supabase_url = "https://talent-graph.supabase.co"
+        settings.supabase_anon_key = "anon-key"
+        try:
+            with patch("app.auth.jwt.get_unverified_header", side_effect=jwt.InvalidTokenError()), patch(
+                "app.auth.httpx.get"
+            ) as get:
+                get.return_value.raise_for_status.return_value = None
+                get.return_value.json.return_value = {"id": "user-1"}
+                claims = _decode_token("signed-token")
+
+            self.assertEqual(claims, {"sub": "user-1", "role": "authenticated"})
+            get.assert_called_once_with(
+                "https://talent-graph.supabase.co/auth/v1/user",
+                headers={"apikey": "anon-key", "Authorization": "Bearer signed-token"},
+                timeout=10,
+            )
+        finally:
+            settings.supabase_url = previous_url
+            settings.supabase_anon_key = previous_key
+
 
 if __name__ == "__main__":
     unittest.main()

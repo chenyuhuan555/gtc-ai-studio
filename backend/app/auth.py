@@ -1,5 +1,6 @@
 """GTC API authentication and product-level access boundary."""
 import jwt
+import httpx
 from fastapi import Header, HTTPException
 from jwt import PyJWKClient
 
@@ -9,19 +10,41 @@ from app.config import settings
 _JWKS_ALGORITHMS = {"RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "EdDSA"}
 
 
+def _verify_with_supabase_auth(token: str) -> dict:
+    if not settings.supabase_url or not settings.supabase_anon_key:
+        raise jwt.PyJWTError("Supabase Auth fallback is not configured")
+    response = httpx.get(
+        f"{settings.supabase_url.rstrip('/')}/auth/v1/user",
+        headers={"apikey": settings.supabase_anon_key, "Authorization": f"Bearer {token}"},
+        timeout=10,
+    )
+    try:
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise jwt.PyJWTError("Supabase Auth rejected the token") from exc
+    user = response.json()
+    user_id = str(user.get("id") or "")
+    if not user_id:
+        raise jwt.PyJWTError("Supabase Auth response has no user id")
+    return {"sub": user_id, "role": "authenticated"}
+
+
 def _decode_token(token: str) -> dict:
     """Decode legacy HS256 tokens or tokens signed by Supabase JWT signing keys."""
-    algorithm = jwt.get_unverified_header(token).get("alg")
-    if algorithm == "HS256":
-        return jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
-    if algorithm not in _JWKS_ALGORITHMS:
-        raise jwt.InvalidAlgorithmError("unsupported JWT signing algorithm")
-    if not settings.supabase_url:
-        raise jwt.PyJWTError("Supabase URL is required for JWT signing keys")
+    try:
+        algorithm = jwt.get_unverified_header(token).get("alg")
+        if algorithm == "HS256":
+            return jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"])
+        if algorithm not in _JWKS_ALGORITHMS:
+            raise jwt.InvalidAlgorithmError("unsupported JWT signing algorithm")
+        if not settings.supabase_url:
+            raise jwt.PyJWTError("Supabase URL is required for JWT signing keys")
 
-    jwks_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
-    signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
-    return jwt.decode(token, signing_key.key, algorithms=[algorithm])
+        jwks_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
+        return jwt.decode(token, signing_key.key, algorithms=[algorithm])
+    except jwt.PyJWTError:
+        return _verify_with_supabase_auth(token)
 
 
 def require_gtc_user(authorization: str | None = Header(default=None)) -> str:

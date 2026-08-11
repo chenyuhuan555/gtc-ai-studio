@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-chat"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     supabase_url: str = ""
+    supabase_anon_key: str = ""
     sync_auth_disabled: bool = False
     supabase_jwt_secret: str = ""
     gtca_allowed_user_ids: str = ""
