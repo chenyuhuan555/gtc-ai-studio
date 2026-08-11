@@ -153,6 +153,7 @@ export default function Dashboard({ onNavigate }) {
   const [stats, setStats] = useState(null)
   const [tasks, setTasks] = useState(loadTasks)
   const [recent, setRecent] = useState([])
+  const [selectedRecent, setSelectedRecent] = useState(null)
   const [events, setEvents] = useState(loadCal)
   const [editingEvt, setEditingEvt] = useState(null) // {id} 正在编辑的事件
   const [addingDay, setAddingDay] = useState(null)   // 正在新增事件的 weekday(1-7)
@@ -638,7 +639,7 @@ export default function Dashboard({ onNavigate }) {
         ) : (
           <div className="divide-y divide-black/[0.04]">
             {recent.map((r, i) => (
-              <div key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <button key={i} onClick={() => setSelectedRecent(r)} className="w-full flex items-center gap-3 py-3 text-left first:pt-0 last:pb-0 hover:bg-gtc-bg/60 transition rounded-xl px-2">
                 <div className="w-9 h-9 rounded-xl bg-gtc-blue/10 text-gtc-blue flex items-center justify-center shrink-0">
                   <SparkIcon size={17} />
                 </div>
@@ -651,11 +652,45 @@ export default function Dashboard({ onNavigate }) {
                 <span className={'chip shrink-0 ' + (r.used_ai ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-gtc-sub')}>
                   {r.used_ai ? 'DeepSeek' : '规则化'}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         )}
       </div>
+
+      {selectedRecent && (
+        <div className="fixed inset-0 z-50 min-h-screen flex items-center justify-center p-4" onClick={() => setSelectedRecent(null)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative w-full max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[28px] bg-white shadow-2xl p-6" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <div className="text-[18px] font-semibold text-gtc-ink">{selectedRecent.title}</div>
+                <div className="text-xs text-gtc-sub mt-1">{selectedRecent.kind} · {platformLabel(selectedRecent.platform)}</div>
+              </div>
+              <button onClick={() => setSelectedRecent(null)} className="w-8 h-8 rounded-full text-gtc-sub hover:bg-gtc-bg">✕</button>
+            </div>
+            {selectedRecent.result ? (
+              <div className="space-y-4">
+                {selectedRecent.result.copy_text && (
+                  <div className="rounded-2xl bg-gtc-bg p-4">
+                    <div className="text-sm font-medium text-gtc-ink mb-2">主文案</div>
+                    <div className="font-medium text-gtc-ink">{selectedRecent.result.copy_text.title}</div>
+                    <pre className="whitespace-pre-wrap text-sm text-gtc-sub mt-2 font-sans">{selectedRecent.result.copy_text.body}</pre>
+                  </div>
+                )}
+                {(selectedRecent.result.image_prompt || selectedRecent.result.prompt) && (
+                  <div className="rounded-2xl bg-gtc-bg p-4">
+                    <div className="text-sm font-medium text-gtc-ink mb-2">图片 Prompt</div>
+                    <pre className="whitespace-pre-wrap text-sm text-gtc-sub font-sans">{selectedRecent.result.image_prompt || selectedRecent.result.prompt}</pre>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-gtc-bg p-4 text-sm text-gtc-sub">该记录是在详情功能上线前生成的，只有摘要信息，没有保存完整内容。</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -113,6 +113,7 @@ export const api = {
       title: r.copy_text?.title || data.event_name || data.topic || data.content_type,
       platform: data.platforms?.[0] || 'wechat',
       used_ai: !!r.used_ai,
+      result: r,
     })
     return r
   },
@@ -147,6 +148,7 @@ export const api = {
       title: (data.user_input || '').slice(0, 30) || '品牌 Prompt',
       platform: data.platform || 'wechat',
       used_ai: !!r.used_ai,
+      result: r,
     })
     return r
   },
