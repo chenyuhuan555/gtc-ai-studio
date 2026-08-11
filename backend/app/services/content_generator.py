@@ -129,8 +129,13 @@ _COPY_BUILDERS = {
 }
 
 
-def _image_prompt(info: ContentGenerateIn, platform: str, db: Session) -> tuple[str, bool]:
-    ctx = load_brand_context(db)
+def _image_prompt(
+    info: ContentGenerateIn,
+    platform: str,
+    db: Session,
+    workspace_id: str = "gtc-default",
+) -> tuple[str, bool]:
+    ctx = load_brand_context(db, workspace_id)
     pr = ctx["platform_rules"].get(platform)
     visual_style = pr.visual_style if pr else ""
     dna_block = "\n- ".join(ctx["visual_dna"])
@@ -187,7 +192,7 @@ def _image_prompt(info: ContentGenerateIn, platform: str, db: Session) -> tuple[
     )
 
     # 同平台历史案例作为风格参考
-    cases_block = load_reference_cases(db, platform)
+    cases_block = load_reference_cases(db, platform, workspace_id)
     if cases_block:
         rule_based += f"\n\n{cases_block}\n"
 
@@ -245,19 +250,19 @@ def _ensure_reference_cases(prompt: str, cases_block: str) -> str:
     return prompt.rstrip() + "\n\n" + cases_block
 
 
-def generate(info: ContentGenerateIn, db: Session) -> ContentGenerateOut:
+def generate(info: ContentGenerateIn, db: Session, workspace_id: str = "gtc-default") -> ContentGenerateOut:
     label = CONTENT_TYPE_LABEL.get(info.content_type, info.content_type)
 
     # 主文案：取第一个平台作为"主版本"
     primary = info.platforms[0] if info.platforms else "wechat"
     primary_copy = _COPY_BUILDERS.get(primary, _wechat_copy)(info, label)
-    image_prompt, used_ai = _image_prompt(info, primary, db)
+    image_prompt, used_ai = _image_prompt(info, primary, db, workspace_id)
 
     versions = []
     for p in info.platforms:
         builder = _COPY_BUILDERS.get(p, _wechat_copy)
         copy = builder(info, label)
-        img, _ = _image_prompt(info, p, db)
+        img, _ = _image_prompt(info, p, db, workspace_id)
         versions.append(
             PlatformVersion(platform=p, copy_text=copy, image_prompt=img)
         )

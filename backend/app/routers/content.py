@@ -9,17 +9,18 @@ from app.models import Prompt
 from app.schemas import ContentGenerateIn, ContentGenerateOut, PromptBuildIn, PromptBuildOut
 from app.services.content_generator import generate as generate_content
 from app.services.prompt_engine import build_prompt
+from app.workspace_access import WorkspaceContext, require_workspace
 
 router = APIRouter(prefix="/api", tags=["content"])
 
 
 @router.post("/content/generate", response_model=ContentGenerateOut)
-def content_generate(payload: ContentGenerateIn, db: Session = Depends(get_db)):
-    return generate_content(payload, db)
+def content_generate(payload: ContentGenerateIn, db: Session = Depends(get_db), workspace: WorkspaceContext = Depends(require_workspace)):
+    return generate_content(payload, db, workspace.id)
 
 
 @router.post("/prompt/build", response_model=PromptBuildOut)
-def prompt_build(payload: PromptBuildIn, db: Session = Depends(get_db)):
+def prompt_build(payload: PromptBuildIn, db: Session = Depends(get_db), workspace: WorkspaceContext = Depends(require_workspace)):
     vc = {
         "poster_type": payload.poster_type,
         "main_visual": payload.main_visual,
@@ -34,10 +35,11 @@ def prompt_build(payload: PromptBuildIn, db: Session = Depends(get_db)):
         "target_audience": payload.target_audience,
         "core_info": payload.core_info,
     }
-    prompt, used_ai = build_prompt(payload.user_input, payload.platform, payload.content_type, db, vc, info)
+    prompt, used_ai = build_prompt(payload.user_input, payload.platform, payload.content_type, db, vc, info, workspace.id)
     # 沉淀到 prompts 表（数据资产中心）
     db.add(
         Prompt(
+            workspace_id=workspace.id,
             platform=payload.platform,
             scene=payload.content_type or "general",
             prompt=prompt,

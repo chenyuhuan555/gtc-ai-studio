@@ -8,11 +8,24 @@ import {
 import * as ds from './deepseek.js'
 import { supabase } from './supabase.js'
 
+const ACTIVE_WORKSPACE_KEY = 'gtc_active_workspace'
+let activeWorkspaceId = localStorage.getItem(ACTIVE_WORKSPACE_KEY) || 'gtc-default'
+
+export function getActiveWorkspaceId() {
+  return activeWorkspaceId
+}
+
+export function setActiveWorkspaceId(workspaceId) {
+  activeWorkspaceId = workspaceId
+  localStorage.setItem(ACTIVE_WORKSPACE_KEY, workspaceId)
+}
+
 async function req(path, opts = {}) {
   const session = supabase ? (await supabase.auth.getSession()).data.session : null
   const res = await fetch((import.meta.env.VITE_API_BASE_URL || '') + '/api' + path, {
     headers: {
       'Content-Type': 'application/json',
+      'X-Workspace-Id': activeWorkspaceId,
       ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
     },
     ...opts,
@@ -52,6 +65,12 @@ function platformsFallback() {
 }
 
 export const api = {
+  async getWorkspaces() {
+    return req('/workspaces')
+  },
+  async createWorkspace(data) {
+    return req('/workspaces', { method: 'POST', body: JSON.stringify(data) })
+  },
   async getBrand() {
     try { return await req('/brand') } catch { return brandFallback() }
   },

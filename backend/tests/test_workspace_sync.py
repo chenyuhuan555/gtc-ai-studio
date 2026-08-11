@@ -81,3 +81,29 @@ class WorkspaceSyncTests(unittest.TestCase):
         self.assertEqual(current.status_code, 200)
         self.assertEqual(current.json()["state"], state)
         self.assertEqual(current.json()["version"], 1)
+
+    def test_workspaces_and_cases_are_isolated(self):
+        created = self.client.post(
+            "/api/workspaces",
+            json={"name": "测试公众号", "description": "独立知识库"},
+        )
+        self.assertEqual(created.status_code, 201)
+        workspace_id = created.json()["id"]
+
+        new_case = self.client.post(
+            "/api/cases",
+            headers={"X-Workspace-Id": workspace_id},
+            json={"platform": "wechat", "title": "测试公众号案例"},
+        )
+        self.assertEqual(new_case.status_code, 201)
+
+        default_cases = self.client.get("/api/cases")
+        self.assertEqual(default_cases.status_code, 200)
+        self.assertNotIn("测试公众号案例", [item["title"] for item in default_cases.json()])
+
+        isolated_cases = self.client.get(
+            "/api/cases",
+            headers={"X-Workspace-Id": workspace_id},
+        )
+        self.assertEqual(isolated_cases.status_code, 200)
+        self.assertEqual([item["title"] for item in isolated_cases.json()], ["测试公众号案例"])

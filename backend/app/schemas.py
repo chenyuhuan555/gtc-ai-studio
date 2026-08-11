@@ -4,6 +4,18 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class WorkspaceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    name: str
+    description: str
+
+
+class WorkspaceCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str = Field(default="", max_length=2000)
+
+
 # ---------- 品牌 ----------
 class BrandInfoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

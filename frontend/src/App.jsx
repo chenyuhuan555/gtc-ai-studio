@@ -4,10 +4,10 @@ import ContentStudio from './pages/ContentStudio.jsx'
 import BrandKnowledge from './pages/BrandKnowledge.jsx'
 import ChatAssistant from './pages/ChatAssistant.jsx'
 import Settings from './pages/Settings.jsx'
-import { isClientConfigured } from './api.js'
+import { api, getActiveWorkspaceId, isClientConfigured, setActiveWorkspaceId } from './api.js'
 import Login from './pages/Login.jsx'
 import { getSession, signOut, supabase, supabaseConfigured } from './supabase.js'
-import { bootstrapWorkspace, captureWorkspaceState, clearWorkspaceSession, saveWorkspace } from './workspaceSync.js'
+import { bootstrapWorkspace, captureWorkspaceState, clearWorkspaceData, clearWorkspaceSession, saveWorkspace } from './workspaceSync.js'
 import { SparkIcon, HomeIcon, DocPenIcon, BookIcon, ChatIcon, GearIcon } from './icons.jsx'
 
 const NAV = [
@@ -31,6 +31,8 @@ export default function App() {
   const [chatPrefill, setChatPrefill] = useState('')
   const [hasKey, setHasKey] = useState(() => isClientConfigured())
   const [session, setSession] = useState(null)
+  const [workspaces, setWorkspaces] = useState([])
+  const [activeWorkspaceId, setActiveWorkspace] = useState(getActiveWorkspaceId())
   const [authLoading, setAuthLoading] = useState(supabaseConfigured)
   const [syncStatus, setSyncStatus] = useState('')
   const syncVersion = useRef(null)
@@ -72,6 +74,36 @@ export default function App() {
     })
     return () => { active = false }
   }, [session])
+
+  useEffect(() => {
+    if (!session) return undefined
+    api.getWorkspaces().then((items) => {
+      setWorkspaces(items)
+      if (!items.some((item) => item.id === activeWorkspaceId) && items[0]) {
+        setActiveWorkspaceId(items[0].id)
+        setActiveWorkspace(items[0].id)
+        clearWorkspaceSession()
+        window.location.reload()
+      }
+    }).catch(() => setWorkspaces([]))
+    return undefined
+  }, [session, activeWorkspaceId])
+
+  const switchWorkspace = (workspaceId) => {
+    if (!workspaceId || workspaceId === activeWorkspaceId) return
+    setActiveWorkspaceId(workspaceId)
+    setActiveWorkspace(workspaceId)
+    clearWorkspaceData()
+    clearWorkspaceSession()
+    window.location.reload()
+  }
+
+  const createWorkspace = async () => {
+    const name = window.prompt('请输入公众号名称')?.trim()
+    if (!name) return
+    const workspace = await api.createWorkspace({ name })
+    switchWorkspace(workspace.id)
+  }
 
   useEffect(() => {
     if (!session || !syncReadyVersion || syncError.current) return undefined
@@ -150,9 +182,12 @@ export default function App() {
             )}
           {syncStatus && <span className="text-xs text-gtc-sub">{syncStatus}</span>}
           {session && <button className="text-xs text-gtc-sub hover:text-gtc-ink" onClick={signOut}>退出登录</button>}
-          <div className="flex items-center gap-2 text-sm text-gtc-sub bg-white/60 border border-black/[0.05] rounded-full px-4 py-1.5">
-            深圳市光明科学城全球青年人才中心
-            <span className="text-[10px] text-gtc-sub/60">▾</span>
+          <div className="flex items-center gap-2 text-sm text-gtc-sub bg-white/60 border border-black/[0.05] rounded-full px-2 py-1">
+            <select value={activeWorkspaceId} onChange={(event) => switchWorkspace(event.target.value)} className="bg-transparent border-0 outline-none text-sm text-gtc-sub py-0.5">
+              {workspaces.length === 0 && <option value={activeWorkspaceId}>GTC 官方公众号</option>}
+              {workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
+            </select>
+            <button onClick={createWorkspace} className="w-6 h-6 rounded-full text-gtc-sub hover:bg-gtc-bg" title="新建公众号">＋</button>
           </div>
         </header>
         <div className="px-8 pb-12 page-enter" key={view}>

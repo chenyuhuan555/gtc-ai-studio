@@ -5,21 +5,22 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import ContentCase
 from app.schemas import CaseCreate, CaseOut, CaseUpdate
+from app.workspace_access import WorkspaceContext, require_workspace
 
 router = APIRouter(prefix="/api/cases", tags=["cases"])
 
 
 @router.get("", response_model=list[CaseOut])
-def list_cases(platform: str | None = None, db: Session = Depends(get_db)):
-    q = db.query(ContentCase)
+def list_cases(platform: str | None = None, db: Session = Depends(get_db), workspace: WorkspaceContext = Depends(require_workspace)):
+    q = db.query(ContentCase).filter(ContentCase.workspace_id == workspace.id)
     if platform:
         q = q.filter(ContentCase.platform == platform)
     return q.order_by(ContentCase.id.desc()).all()
 
 
 @router.post("", response_model=CaseOut, status_code=201)
-def create_case(payload: CaseCreate, db: Session = Depends(get_db)):
-    case = ContentCase(**payload.model_dump())
+def create_case(payload: CaseCreate, db: Session = Depends(get_db), workspace: WorkspaceContext = Depends(require_workspace)):
+    case = ContentCase(workspace_id=workspace.id, **payload.model_dump())
     db.add(case)
     db.commit()
     db.refresh(case)
@@ -27,16 +28,16 @@ def create_case(payload: CaseCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{case_id}", response_model=CaseOut)
-def get_case(case_id: int, db: Session = Depends(get_db)):
-    case = db.query(ContentCase).filter(ContentCase.id == case_id).first()
+def get_case(case_id: int, db: Session = Depends(get_db), workspace: WorkspaceContext = Depends(require_workspace)):
+    case = db.query(ContentCase).filter(ContentCase.workspace_id == workspace.id, ContentCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     return case
 
 
 @router.put("/{case_id}", response_model=CaseOut)
-def update_case(case_id: int, payload: CaseUpdate, db: Session = Depends(get_db)):
-    case = db.query(ContentCase).filter(ContentCase.id == case_id).first()
+def update_case(case_id: int, payload: CaseUpdate, db: Session = Depends(get_db), workspace: WorkspaceContext = Depends(require_workspace)):
+    case = db.query(ContentCase).filter(ContentCase.workspace_id == workspace.id, ContentCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     for key, value in payload.model_dump(exclude_unset=True).items():
@@ -47,8 +48,8 @@ def update_case(case_id: int, payload: CaseUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/{case_id}")
-def delete_case(case_id: int, db: Session = Depends(get_db)):
-    case = db.query(ContentCase).filter(ContentCase.id == case_id).first()
+def delete_case(case_id: int, db: Session = Depends(get_db), workspace: WorkspaceContext = Depends(require_workspace)):
+    case = db.query(ContentCase).filter(ContentCase.workspace_id == workspace.id, ContentCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     db.delete(case)

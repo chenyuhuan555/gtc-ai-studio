@@ -11,13 +11,13 @@ PLATFORM_LABELS = {
 }
 
 
-def load_brand_context(db: Session) -> dict:
-    info = db.query(BrandInfo).first()
-    visual_dna = db.query(BrandRule).filter(BrandRule.category == "visual_dna").all()
-    forbidden = db.query(BrandRule).filter(BrandRule.category == "forbidden").all()
-    platform_rules = {r.platform: r for r in db.query(PlatformRule).all()}
+def load_brand_context(db: Session, workspace_id: str = "gtc-default") -> dict:
+    info = db.query(BrandInfo).filter(BrandInfo.workspace_id == workspace_id).first()
+    visual_dna = db.query(BrandRule).filter(BrandRule.workspace_id == workspace_id, BrandRule.category == "visual_dna").all()
+    forbidden = db.query(BrandRule).filter(BrandRule.workspace_id == workspace_id, BrandRule.category == "forbidden").all()
+    platform_rules = {r.platform: r for r in db.query(PlatformRule).filter(PlatformRule.workspace_id == workspace_id).all()}
 
-    logo = db.query(BrandRule).filter(BrandRule.category == "logo").all()
+    logo = db.query(BrandRule).filter(BrandRule.workspace_id == workspace_id, BrandRule.category == "logo").all()
 
     return {
         "name_cn": info.name_cn if info else "GTC",
@@ -40,14 +40,14 @@ _PLATFORM_LABELS = {
 }
 
 
-def load_reference_cases(db: Session, platform: str, limit: int = 3) -> str:
+def load_reference_cases(db: Session, platform: str, workspace_id: str = "gtc-default", limit: int = 3) -> str:
     """取同平台且「用作参考」开启的历史案例，拼成一段参考文本。
 
     返回空串表示没有可用参考案例（调用方据此跳过注入）。
     """
     rows = (
         db.query(ContentCase)
-        .filter(ContentCase.platform == platform, ContentCase.is_reference == True)  # noqa: E712
+        .filter(ContentCase.workspace_id == workspace_id, ContentCase.platform == platform, ContentCase.is_reference == True)  # noqa: E712
         .order_by(ContentCase.id.desc())
         .limit(limit)
         .all()

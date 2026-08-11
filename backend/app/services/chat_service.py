@@ -24,8 +24,8 @@ SYSTEM_PROMPT = """你是 GTC（深圳市光明科学城全球青年人才中心
 具体时间、地点、主办单位等关键信息必须原样保留，不得省略或改写为占位符。"""
 
 
-def _brand_block(db) -> str:
-    ctx = load_brand_context(db)
+def _brand_block(db, workspace_id: str = "gtc-default") -> str:
+    ctx = load_brand_context(db, workspace_id)
     dna = "\n".join(f"- {d}" for d in ctx["visual_dna"])
     forbidden = "\n".join(f"- 禁止：{f}" for f in ctx["forbidden"])
     logo = "\n".join(f"- {l}" for l in ctx["logo"]) or "- 使用官方 GTC logo 作为品牌标记，不得重新设计"
@@ -58,8 +58,8 @@ def _parse_json(text: str) -> dict | None:
         return None
 
 
-def _ensure_brand_mark(prompt: str, db) -> str:
-    ctx = load_brand_context(db)
+def _ensure_brand_mark(prompt: str, db, workspace_id: str = "gtc-default") -> str:
+    ctx = load_brand_context(db, workspace_id)
     logo = "; ".join(ctx["logo"]) or "Use the official GTC logo as a brand mark; do not redesign it."
     if "[Brand Mark]" in prompt:
         return prompt
@@ -71,11 +71,11 @@ def _ensure_brand_mark(prompt: str, db) -> str:
     return prompt.rstrip() + block
 
 
-def optimize(messages: list[dict], current_prompt: str, platform: str, content_type: str, db) -> tuple[str, str, bool]:
+def optimize(messages: list[dict], current_prompt: str, platform: str, content_type: str, db, workspace_id: str = "gtc-default") -> tuple[str, str, bool]:
     """多轮优化。返回 (reply, optimized_prompt, used_ai)。"""
     label = PLATFORM_LABELS.get(platform, platform)
-    brand = _brand_block(db)
-    cases_block = load_reference_cases(db, platform)
+    brand = _brand_block(db, workspace_id)
+    cases_block = load_reference_cases(db, platform, workspace_id)
 
     # 把品牌上下文与当前提示词作为隐藏 system 备注注入到对话开头
     context_note = (
@@ -108,10 +108,10 @@ def optimize(messages: list[dict], current_prompt: str, platform: str, content_t
         optimized = str(parsed.get("optimized_prompt", "")).strip()
         if not optimized:
             optimized = current_prompt
-        return reply, _ensure_brand_mark(_ensure_concrete_details(optimized, current_prompt or ""), db), True
+        return reply, _ensure_brand_mark(_ensure_concrete_details(optimized, current_prompt or ""), db, workspace_id), True
 
     # 解析失败：把原始回复作为分析，保留当前提示词
-    return raw.strip(), _ensure_brand_mark(_ensure_concrete_details(current_prompt or ""), db), True
+    return raw.strip(), _ensure_brand_mark(_ensure_concrete_details(current_prompt or ""), db, workspace_id), True
 
 
 def _ensure_concrete_details(prompt: str, base: str = "") -> str:

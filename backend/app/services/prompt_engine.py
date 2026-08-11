@@ -23,8 +23,9 @@ def build_prompt(
     db: Session,
     vc: dict | None = None,
     info: dict | None = None,
+    workspace_id: str = "gtc-default",
 ) -> tuple[str, bool]:
-    ctx = load_brand_context(db)
+    ctx = load_brand_context(db, workspace_id)
     label = PLATFORM_LABELS.get(platform, platform)
     pr = ctx["platform_rules"].get(platform)
     visual_style = pr.visual_style if pr else ""
@@ -82,7 +83,7 @@ def build_prompt(
 """
 
     # 同平台历史案例作为风格参考
-    cases_block = load_reference_cases(db, platform)
+    cases_block = load_reference_cases(db, platform, workspace_id)
     if cases_block:
         rule_based += f"\n\n{cases_block}\n"
 

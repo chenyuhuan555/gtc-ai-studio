@@ -8,6 +8,7 @@ from app.auth import require_gtc_user
 from app.database import get_db
 from app.models import WorkspaceState
 from app.schemas import WorkspaceSyncIn, WorkspaceSyncOut
+from app.workspace_access import WorkspaceContext, require_workspace
 
 router = APIRouter(prefix="/api/sync", tags=["sync"])
 
@@ -29,9 +30,9 @@ def as_output(row: WorkspaceState) -> WorkspaceSyncOut:
 def get_workspace(
     workspace_id: str = "main",
     db: Session = Depends(get_db),
-    _user_id: str = Depends(require_gtc_user),
+    workspace: WorkspaceContext = Depends(require_workspace),
 ):
-    row = db.get(WorkspaceState, workspace_id)
+    row = db.get(WorkspaceState, workspace.id)
     return as_output(row) if row else None
 
 
@@ -39,14 +40,14 @@ def get_workspace(
 def save_workspace(
     payload: WorkspaceSyncIn,
     db: Session = Depends(get_db),
-    _user_id: str = Depends(require_gtc_user),
+    workspace: WorkspaceContext = Depends(require_workspace),
 ):
-    row = db.get(WorkspaceState, payload.workspace_id)
+    row = db.get(WorkspaceState, workspace.id)
     if row is None:
         if payload.expected_version not in (None, 0):
             raise HTTPException(status_code=409, detail="工作区版本已变化")
         row = WorkspaceState(
-            workspace_id=payload.workspace_id,
+            workspace_id=workspace.id,
             state=payload.state,
             version=1,
             updated_at=utc_now(),

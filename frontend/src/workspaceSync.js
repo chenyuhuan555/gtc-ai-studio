@@ -1,7 +1,7 @@
 import { supabase, supabaseConfigured } from './supabase.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
-const WORKSPACE_ID = 'main'
+const WORKSPACE_STORAGE_KEY = 'gtc_active_workspace'
 const HYDRATED_KEY = 'gtc_sync_hydrated'
 const VERSION_KEY = 'gtc_sync_version'
 const KEYS = [
@@ -13,6 +13,10 @@ const KEYS = [
   'gtc_studio_form_v1',
   'gtc_prompt_form_v1',
 ]
+
+function activeWorkspaceId() {
+  return localStorage.getItem(WORKSPACE_STORAGE_KEY) || 'gtc-default'
+}
 
 function readJson(key) {
   try {
@@ -61,11 +65,12 @@ async function request(path, session, options = {}) {
 export async function bootstrapWorkspace(session) {
   if (!supabaseConfigured || !session) return { mode: 'local' }
 
-  const cloud = await request(`/workspace?workspace_id=${WORKSPACE_ID}`, session)
+  const workspaceId = activeWorkspaceId()
+  const cloud = await request(`/workspace?workspace_id=${workspaceId}`, session)
   if (!cloud) {
     const created = await request('/workspace', session, {
       method: 'PUT',
-      body: JSON.stringify({ workspace_id: WORKSPACE_ID, state: captureWorkspaceState(), expected_version: null }),
+      body: JSON.stringify({ workspace_id: workspaceId, state: captureWorkspaceState(), expected_version: null }),
     })
     localStorage.setItem(HYDRATED_KEY, '1')
     localStorage.setItem(VERSION_KEY, String(created.version))
@@ -80,16 +85,17 @@ export async function bootstrapWorkspace(session) {
 
 export async function saveWorkspace(session, version) {
   if (!supabaseConfigured || !session || !version) return null
+  const workspaceId = activeWorkspaceId()
   const save = (expectedVersion) => request('/workspace', session, {
     method: 'PUT',
-    body: JSON.stringify({ workspace_id: WORKSPACE_ID, state: captureWorkspaceState(), expected_version: expectedVersion }),
+    body: JSON.stringify({ workspace_id: workspaceId, state: captureWorkspaceState(), expected_version: expectedVersion }),
   })
 
   try {
     return await save(version)
   } catch (error) {
     if (error.status !== 409) throw error
-    const latest = await request(`/workspace?workspace_id=${WORKSPACE_ID}`, session)
+    const latest = await request(`/workspace?workspace_id=${workspaceId}`, session)
     if (!latest) throw error
     return save(latest.version)
   }
@@ -98,4 +104,8 @@ export async function saveWorkspace(session, version) {
 export function clearWorkspaceSession() {
   localStorage.removeItem(HYDRATED_KEY)
   localStorage.removeItem(VERSION_KEY)
+}
+
+export function clearWorkspaceData() {
+  KEYS.forEach((key) => localStorage.removeItem(key))
 }

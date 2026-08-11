@@ -7,11 +7,33 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
+DEFAULT_WORKSPACE_ID = "gtc-default"
+
+
+class Workspace(Base):
+    __tablename__ = "gtc_workspaces"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text, default="")
+    created_by: Mapped[str] = mapped_column(String(64), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class WorkspaceMember(Base):
+    __tablename__ = "gtc_workspace_members"
+
+    workspace_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True, index=True)
+    role: Mapped[str] = mapped_column(String(32), default="owner")
+
+
 class BrandInfo(Base):
     """GTC 品牌基础信息（模块一 1.1）。"""
     __tablename__ = "gtc_brand_info"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    workspace_id: Mapped[str] = mapped_column(String(64), default=DEFAULT_WORKSPACE_ID, index=True)
     name_cn: Mapped[str] = mapped_column(String(255), default="深圳市光明科学城全球青年人才中心")
     name_en: Mapped[str] = mapped_column(
         String(255), default="Global Youth Talent Center of Guang Ming Science City"
@@ -26,6 +48,7 @@ class BrandRule(Base):
     __tablename__ = "gtc_brand_rules"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    workspace_id: Mapped[str] = mapped_column(String(64), default=DEFAULT_WORKSPACE_ID, index=True)
     category: Mapped[str] = mapped_column(String(64), index=True)  # visual_dna / forbidden / template
     rule: Mapped[str] = mapped_column(Text)
     example: Mapped[str] = mapped_column(Text, default="")
@@ -36,6 +59,7 @@ class ContentCase(Base):
     __tablename__ = "gtc_content_cases"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    workspace_id: Mapped[str] = mapped_column(String(64), default=DEFAULT_WORKSPACE_ID, index=True)
     platform: Mapped[str] = mapped_column(String(32), index=True)  # wechat / xiaohongshu / video / linkedin
     title: Mapped[str] = mapped_column(String(255))
     published_at: Mapped[str] = mapped_column(String(32), default="")
@@ -52,7 +76,8 @@ class PlatformRule(Base):
     __tablename__ = "gtc_platform_rules"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    platform: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    workspace_id: Mapped[str] = mapped_column(String(64), default=DEFAULT_WORKSPACE_ID, index=True)
+    platform: Mapped[str] = mapped_column(String(32), index=True)
     audience: Mapped[str] = mapped_column(Text, default="")
     tone: Mapped[str] = mapped_column(Text, default="")
     visual_style: Mapped[str] = mapped_column(Text, default="")
@@ -63,6 +88,7 @@ class Prompt(Base):
     __tablename__ = "gtc_prompts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    workspace_id: Mapped[str] = mapped_column(String(64), default=DEFAULT_WORKSPACE_ID, index=True)
     platform: Mapped[str] = mapped_column(String(32), index=True)
     scene: Mapped[str] = mapped_column(String(64), default="")
     prompt: Mapped[str] = mapped_column(Text)
@@ -74,6 +100,7 @@ class Intelligence(Base):
     __tablename__ = "gtc_intelligence"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    workspace_id: Mapped[str] = mapped_column(String(64), default=DEFAULT_WORKSPACE_ID, index=True)
     source: Mapped[str] = mapped_column(String(128), default="")
     title: Mapped[str] = mapped_column(String(255))
     summary: Mapped[str] = mapped_column(Text, default="")
