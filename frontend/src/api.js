@@ -238,6 +238,27 @@ export const CONTENT_TYPES = [
   '招聘', '活动预告', '活动回顾', '人才政策', '企业介绍', '科研动态', '品牌宣传',
 ]
 
+const CUSTOM_CONTENT_TYPES_KEY = 'gtc_custom_content_types'
+
+export function getContentTypes() {
+  try {
+    const custom = JSON.parse(localStorage.getItem(CUSTOM_CONTENT_TYPES_KEY) || '[]')
+    return [...CONTENT_TYPES, ...custom.filter((item) => typeof item === 'string' && item.trim() && !CONTENT_TYPES.includes(item.trim()))]
+  } catch {
+    return CONTENT_TYPES
+  }
+}
+
+export function addCustomContentType(name) {
+  const value = name.trim()
+  if (!value || CONTENT_TYPES.includes(value)) return getContentTypes()
+  let custom = []
+  try { custom = JSON.parse(localStorage.getItem(CUSTOM_CONTENT_TYPES_KEY) || '[]') } catch { /* ignore */ }
+  if (!custom.includes(value)) custom.push(value)
+  localStorage.setItem(CUSTOM_CONTENT_TYPES_KEY, JSON.stringify(custom.slice(0, 30)))
+  return getContentTypes()
+}
+
 export function platformLabel(key) {
   return PLATFORMS.find((p) => p.key === key)?.label || key
 }

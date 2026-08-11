@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { api, PLATFORMS, CONTENT_TYPES, platformLabel, platformColor } from '../api.js'
+import { api, PLATFORMS, getContentTypes, addCustomContentType, platformLabel, platformColor } from '../api.js'
 import { VISUAL_CONTROL } from '../engine.js'
 import { SparkIcon, DocPenIcon, ChatIcon } from '../icons.jsx'
 
@@ -54,6 +54,7 @@ function loadPromptForm() {
 export default function ContentStudio({ onSendToChat }) {
   const [tab, setTab] = useState('generate')
   const [form, setForm] = useState(loadStudioForm())
+  const [contentTypes, setContentTypes] = useState(getContentTypes)
   // 切换导航 / 刷新页面时保留已填内容
   useEffect(() => {
     try { localStorage.setItem(STUDIO_FORM_KEY, JSON.stringify(form)) } catch { /* ignore */ }
@@ -70,6 +71,13 @@ export default function ContentStudio({ onSendToChat }) {
         ? f.platforms.filter((p) => p !== key)
         : [...f.platforms, key],
     }))
+  }
+
+  const createContentType = () => {
+    const name = window.prompt('请输入自定义内容类型名称（例如：园区服务）')?.trim()
+    if (!name) return
+    setContentTypes(addCustomContentType(name))
+    setForm((current) => ({ ...current, content_type: name }))
   }
 
   const generate = async () => {
@@ -110,10 +118,13 @@ export default function ContentStudio({ onSendToChat }) {
               <DocPenIcon size={17} className="text-gtc-blue" /> 输入需求
             </div>
             <div>
-              <label className="label">内容类型</label>
+              <div className="flex items-center justify-between">
+                <label className="label">内容类型</label>
+                <button type="button" className="text-xs text-gtc-blue hover:underline" onClick={createContentType}>＋ 自定义</button>
+              </div>
               <select className="input" value={form.content_type}
                 onChange={(e) => setForm({ ...form, content_type: e.target.value })}>
-                {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {contentTypes.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <Field label="主题" value={form.topic} onChange={(v) => setForm({ ...form, topic: v })} />
@@ -307,6 +318,7 @@ function VisualControlSection({ form, setForm }) {
 
 function PromptEngine({ onSendToChat }) {
   const init = loadPromptForm()
+  const [contentTypes, setContentTypes] = useState(getContentTypes)
   const [input, setInput] = useState(init.input)
   const [platform, setPlatform] = useState(init.platform)
   const [ctype, setCtype] = useState(init.ctype)
@@ -316,6 +328,13 @@ function PromptEngine({ onSendToChat }) {
   }, [input, platform, ctype, vc])
   const [res, setRes] = useState(null)
   const [loading, setLoading] = useState(false)
+
+  const createContentType = () => {
+    const name = window.prompt('请输入自定义内容类型名称（例如：园区服务）')?.trim()
+    if (!name) return
+    setContentTypes(addCustomContentType(name))
+    setCtype(name)
+  }
 
   const run = async () => {
     setLoading(true)
@@ -346,9 +365,12 @@ function PromptEngine({ onSendToChat }) {
             </select>
           </div>
           <div>
-            <label className="label">内容类型</label>
+            <div className="flex items-center justify-between">
+              <label className="label">内容类型</label>
+              <button type="button" className="text-xs text-gtc-blue hover:underline" onClick={createContentType}>＋ 自定义</button>
+            </div>
             <select className="input" value={ctype} onChange={(e) => setCtype(e.target.value)}>
-              {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {contentTypes.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
         </div>

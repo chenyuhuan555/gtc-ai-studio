@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { api, PLATFORMS, CONTENT_TYPES } from '../api.js'
+import { api, PLATFORMS, getContentTypes } from '../api.js'
 import { SparkIcon, ChatIcon } from '../icons.jsx'
 
 const SUGGESTIONS = [
@@ -20,6 +20,7 @@ function persistSessions(list) {
 }
 
 export default function ChatAssistant({ prefill }) {
+  const contentTypes = getContentTypes()
   const [sessions, setSessions] = useState(loadSessions)
   const [currentId, setCurrentId] = useState(null)
   const [messages, setMessages] = useState([])
@@ -212,7 +213,7 @@ export default function ChatAssistant({ prefill }) {
                 {PLATFORMS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
               </select>
               <select className="input !py-1 !text-xs w-28" value={ctype} onChange={(e) => setCtype(e.target.value)}>
-                {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {contentTypes.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>

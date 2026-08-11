@@ -12,6 +12,7 @@ const KEYS = [
   'gtc_recent_gens',
   'gtc_studio_form_v1',
   'gtc_prompt_form_v1',
+  'gtc_custom_content_types',
 ]
 
 function activeWorkspaceId() {
